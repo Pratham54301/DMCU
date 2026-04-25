@@ -12,22 +12,35 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
 
+// 1. Properly parse allowed origins (strip trailing slashes to be safe)
 const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(",").map((origin) => origin.trim()).filter(Boolean)
-  : [];
+  ? process.env.CLIENT_URL.split(",")
+      .map((origin) => origin.trim().replace(/\/$/, "")) // Remove trailing slash
+      .filter(Boolean)
+  : ["https://dmcu.vercel.app", "http://localhost:3000", "http://localhost:3004"];
 
-app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+// 2. Configure CORS options
+const corsOptions = {
+  origin: function (origin, callback) {
+    // allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      callback(new Error('CORS policy violation: Origin not allowed'));
+    }
+  },
+  credentials: true, // Important for cookies/sessions
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
 
-      return callback(new Error("CORS is not allowed for this origin."));
-    },
-    credentials: true
-  })
-);
+// 3. Handle Preflight (OPTIONS) requests globally BEFORE regular routes
+app.options('*', cors(corsOptions));
+
+// 4. Apply CORS middleware globally
+app.use(cors(corsOptions));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
