@@ -12,12 +12,15 @@ const { notFound, errorHandler } = require("./middleware/errorMiddleware");
 
 const app = express();
 
-// 1. Properly parse allowed origins (strip trailing slashes to be safe)
+const defaultOrigins = ["https://dmcu.vercel.app", "http://localhost:3000", "http://localhost:3004"];
 const allowedOrigins = process.env.CLIENT_URL
-  ? process.env.CLIENT_URL.split(",")
-      .map((origin) => origin.trim().replace(/\/$/, "")) // Remove trailing slash
-      .filter(Boolean)
-  : ["https://dmcu.vercel.app", "http://localhost:3000", "http://localhost:3004"];
+  ? [
+      ...process.env.CLIENT_URL.split(",")
+        .map((origin) => origin.trim().replace(/\/$/, "")) // Remove trailing slash
+        .filter(Boolean),
+      ...defaultOrigins // Always include these to prevent accidental lockouts
+    ]
+  : defaultOrigins;
 
 // 2. Configure CORS options
 const corsOptions = {
