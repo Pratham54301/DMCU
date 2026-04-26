@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { fetchJson } from "@/lib/api";
+import { fetchJson, buildMediaUrl } from "@/lib/api";
 import { CinematicCard, GlowButton } from "@/components/motion/MotionComponents";
 
 export default function ComicManagerView() {
@@ -12,11 +12,12 @@ export default function ComicManagerView() {
   const [newComic, setNewComic] = useState({
     title: "",
     description: "",
-    coverImage: "",
-    pdfFile: "",
     category: "General"
   });
+  const [coverImage, setCoverImage] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
   const [message, setMessage] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const loadComics = async () => {
     try {
@@ -41,21 +42,48 @@ export default function ComicManagerView() {
 
   const handleCreateComic = async (e) => {
     e.preventDefault();
+    if (!coverImage || !pdfFile) {
+        setMessage("Both Cover Image and PDF File are required.");
+        return;
+    }
+
+    setBusy(true);
     const slug = generateSlug(newComic.title);
+    
+    const formData = new FormData();
+    formData.append("title", newComic.title);
+    formData.append("description", newComic.description);
+    formData.append("category", newComic.category);
+    formData.append("slug", slug);
+    formData.append("coverImage", coverImage);
+    formData.append("pdfFile", pdfFile);
+
     try {
-      const response = await fetchJson("/api/comics", {
+      const response = await fetch("/api/comics", {
         method: "POST",
-        body: JSON.stringify({ ...newComic, slug }),
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('dmcu-admin-token')}`
+        },
+        body: formData,
       });
-      if (response.success) {
+      const result = await response.json();
+      
+      if (result.success) {
         setShowAddForm(false);
-        setNewComic({ title: "", description: "", coverImage: "", pdfFile: "", category: "General" });
+        setNewComic({ title: "", description: "", category: "General" });
+        setCoverImage(null);
+        setPdfFile(null);
         loadComics();
-        setMessage("Comic created successfully!");
+        setMessage("Comic uploaded successfully!");
         setTimeout(() => setMessage(""), 3000);
+      } else {
+        setMessage(result.message || "Upload failed");
       }
     } catch (err) {
       console.error("Failed to create comic", err);
+      setMessage("Upload error");
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -78,12 +106,12 @@ export default function ComicManagerView() {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="font-display text-3xl uppercase tracking-widest text-primary">
-            Comic Manager (PDF System)
+            Comic Vault (Direct Upload)
           </h2>
-          <p className="text-muted text-xs uppercase tracking-widest mt-2">Upload and manage PDF chronicles</p>
+          <p className="text-muted text-xs uppercase tracking-widest mt-2">Upload PDFs directly to Cloudinary</p>
         </div>
         <GlowButton onClick={() => setShowAddForm(!showAddForm)}>
-          {showAddForm ? "Cancel" : "Add New PDF Comic"}
+          {showAddForm ? "Cancel" : "Upload New PDF Comic"}
         </GlowButton>
       </div>
 
@@ -128,30 +156,30 @@ export default function ComicManagerView() {
 
             <div className="space-y-4">
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-muted block mb-2">Cover Image URL</label>
+                <label className="text-[10px] uppercase tracking-widest text-muted block mb-2">Cover Image Upload</label>
                 <input 
-                  type="text" 
+                  type="file" 
+                  accept="image/*"
                   required
-                  value={newComic.coverImage}
-                  onChange={(e) => setNewComic({ ...newComic, coverImage: e.target.value })}
-                  className="w-full bg-surface/50 border border-primary/20 rounded-lg p-3 text-sm focus:border-primary outline-none"
-                  placeholder="https://..."
+                  onChange={(e) => setCoverImage(e.target.files[0])}
+                  className="w-full bg-surface/50 border border-primary/20 rounded-lg p-3 text-xs focus:border-primary outline-none"
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase tracking-widest text-muted block mb-2">PDF File URL / Path</label>
+                <label className="text-[10px] uppercase tracking-widest text-muted block mb-2">PDF File Upload</label>
                 <input 
-                  type="text" 
+                  type="file" 
+                  accept="application/pdf"
                   required
-                  value={newComic.pdfFile}
-                  onChange={(e) => setNewComic({ ...newComic, pdfFile: e.target.value })}
-                  className="w-full bg-surface/50 border border-primary/20 rounded-lg p-3 text-sm focus:border-primary outline-none"
-                  placeholder="https://.../comic.pdf"
+                  onChange={(e) => setPdfFile(e.target.files[0])}
+                  className="w-full bg-surface/50 border border-primary/20 rounded-lg p-3 text-xs focus:border-primary outline-none"
                 />
               </div>
 
               <div className="pt-6">
-                <GlowButton type="submit" className="w-full">Authorize PDF Upload</GlowButton>
+                <GlowButton type="submit" className="w-full" disabled={busy}>
+                    {busy ? "Uploading to Cloud..." : "Authorize PDF Upload"}
+                </GlowButton>
               </div>
             </div>
           </form>
@@ -162,7 +190,7 @@ export default function ComicManagerView() {
         {comics.map((comic) => (
           <CinematicCard key={comic._id} className="group overflow-hidden">
             <div className="relative aspect-[3/4] overflow-hidden">
-              <img src={comic.coverImage} alt={comic.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              <img src={buildMediaUrl(comic.coverImage)} alt={comic.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
               <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-60" />
               <div className="absolute top-2 right-2">
                 <button 
@@ -180,7 +208,7 @@ export default function ComicManagerView() {
               <div className="mt-4 text-[10px] text-primary/60 uppercase tracking-widest flex justify-between items-center">
                 <span className="flex items-center gap-1">
                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M7 2v10h10V2H7zm0 12h10v2H7v-2zm0 4h10v2H7v-2z"/></svg>
-                  PDF Ready
+                  PDF Cloud-Link
                 </span>
                 <span>{new Date(comic.createdAt).toLocaleDateString()}</span>
               </div>

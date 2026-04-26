@@ -4,7 +4,7 @@ import { useState } from "react";
 import Container from "@/components/Container";
 import { SectionWrapper, GlowButton } from "@/components/motion/MotionComponents";
 
-export default function CTASection() {
+export default function CTASection({ content }) {
   const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
 
@@ -15,16 +15,16 @@ export default function CTASection() {
   };
 
   return (
-    <SectionWrapper id="cta">
+    <SectionWrapper id="comic">
       <Container>
         <div className="text-center">
           <div className="glass-card p-12 max-w-2xl mx-auto shadow-glow">
             <h2 className="font-display text-4xl uppercase tracking-[0.16em] text-text mb-4">
-              Join the Dharma
+              {content?.title || "Join the Dharma"}
             </h2>
 
             <p className="text-lg text-muted mb-8">
-              Be the first to know when new chapters unfold. Enter the universe and stay connected with the latest from DMCU.
+              {content?.description || "Be the first to know when new chapters unfold. Enter the universe and stay connected with the latest from DMCU."}
             </p>
 
             {!isSubmitted ? (

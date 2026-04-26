@@ -33,24 +33,24 @@ export const deleteCharacterRequest = (token, characterId) =>
     headers: withAuthHeaders(token)
   });
 
-export const fetchBlogsRequest = (options = {}) => fetchJson("/api/blog", options);
+export const fetchBlogsRequest = (options = {}) => fetchJson("/api/blogs", options);
 
 export const createBlogRequest = (token, formData) =>
-  apiRequest("/api/blog", {
+  apiRequest("/api/blogs", {
     method: "POST",
     headers: withAuthHeaders(token),
     body: formData
   });
 
 export const updateBlogRequest = (token, blogId, formData) =>
-  apiRequest(`/api/blog/${blogId}`, {
+  apiRequest(`/api/blogs/${blogId}`, {
     method: "PUT",
     headers: withAuthHeaders(token),
     body: formData
   });
 
 export const deleteBlogRequest = (token, blogId) =>
-  apiRequest(`/api/blog/${blogId}`, {
+  apiRequest(`/api/blogs/${blogId}`, {
     method: "DELETE",
     headers: withAuthHeaders(token)
   });

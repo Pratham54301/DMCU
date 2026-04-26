@@ -51,6 +51,7 @@ export const ThemeProvider = ({ children }) => {
     root.style.setProperty('--muted-color', hexToRgb(toHex(colors.muted || "#a0a0a0")));
     root.style.setProperty('--surface-color', hexToRgb(toHex(colors.surface || "#121212")));
     root.style.setProperty('--surface-strong', hexToRgb(toHex(colors.surfaceStrong || "#1a1a1a")));
+    root.style.setProperty('--character-bg-color', hexToRgb(toHex(colors.characterBg || "#000000")));
 
     // Apply Background Configuration
     if (backgroundConfig && backgroundStyles) {
@@ -97,7 +98,8 @@ export const ThemeProvider = ({ children }) => {
       text: "#eaeaea",
       muted: "#b0b0b0",
       surface: "#141414",
-      surfaceStrong: "#1e1e1e"
+      surfaceStrong: "#1e1e1e",
+      characterBg: "#050505"
     },
     backgroundStyles: {
       baseColor: "#08080c"

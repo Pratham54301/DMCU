@@ -8,6 +8,7 @@ const {
   deleteCharacter,
   getCharacterRanking
 } = require("../controllers/characterController");
+const { voteCharacter } = require("../controllers/voteController");
 const { protect } = require("../middleware/authMiddleware");
 const { characterUpload } = require("../middleware/uploadMiddleware");
 
@@ -22,5 +23,7 @@ router
   .get(getCharacterById)
   .put(protect, characterUpload, updateCharacter)
   .delete(protect, deleteCharacter);
+
+router.post("/:id/vote", protect, voteCharacter);
 
 module.exports = router;

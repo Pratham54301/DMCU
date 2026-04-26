@@ -4,14 +4,16 @@ import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
 import CinematicBackdrop from "@/components/CinematicBackdrop";
 import LoadingScreen from "@/components/LoadingScreen";
-import SiteHeader from "@/components/SiteHeader";
 import AboutSection from "@/sections/AboutSection";
 import CharactersSection from "@/sections/CharactersSection";
 import CTASection from "@/sections/CTASection";
-import FooterSection from "@/sections/FooterSection";
 import HeroSection from "@/sections/HeroSection";
 import TimelineSection from "@/sections/TimelineSection";
 import TrailerSection from "@/sections/TrailerSection";
+import RankingSection from "@/sections/RankingSection";
+import BlogSection from "@/sections/BlogSection";
+import LoreSection from "@/sections/LoreSection";
+import MultiverseSEO from "@/components/MultiverseSEO";
 import { fetchJson } from "@/lib/api";
 
 export default function HomePage() {
@@ -50,8 +52,10 @@ export default function HomePage() {
         return <HeroSection key={sectionKey} {...componentProps} />;
       case 'about':
         return <AboutSection key={sectionKey} {...componentProps} />;
-      case 'lore':
+      case 'timeline':
         return <TimelineSection key={sectionKey} {...componentProps} />;
+      case 'lore':
+        return <LoreSection key={sectionKey} {...componentProps} />;
       case 'comic':
         return <CTASection key={sectionKey} {...componentProps} />;
       case 'characters':
@@ -59,7 +63,9 @@ export default function HomePage() {
       case 'trailer':
         return <TrailerSection key={sectionKey} {...componentProps} />;
       case 'ranking':
-        return null;
+        return <RankingSection key={sectionKey} {...componentProps} />;
+      case 'blog':
+        return <BlogSection key={sectionKey} {...componentProps} />;
       case 'custom':
         return <AboutSection key={sectionKey} {...componentProps} />;
       default:
@@ -72,13 +78,15 @@ export default function HomePage() {
       {isLoading ? (
         <LoadingScreen key="loading" onComplete={() => setIsLoading(false)} />
       ) : (
-        <main key="main" className="relative min-h-screen overflow-x-hidden bg-background text-text">
+        <main key="main" className="relative min-h-screen text-text">
+          <MultiverseSEO 
+            title="Nexus Core" 
+            description="Experience the DMCU digital multiverse. Discover legendary characters, explore the interactive timeline, and decrypt lore archives."
+          />
           <CinematicBackdrop />
-          <SiteHeader />
 
           <div className="relative z-10">
             {sections.map(section => renderSection(section))}
-            <FooterSection />
           </div>
         </main>
       )}

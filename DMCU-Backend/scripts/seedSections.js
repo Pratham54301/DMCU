@@ -15,20 +15,22 @@ const sections = [
     content: {
       title: 'DMCU',
       subtitle: 'A New Era of Dharma Begins',
-      description: 'The home base of the Dharma Mythos Cinematic Universe.',
+      description: 'Where ancient divine power meets futuristic destiny. The Dharma Mythos Cinematic Universe unites mythology, technology, and heroic legends to protect existence from rising darkness.',
+      buttonText: 'Explore The Universe'
     }
   },
   {
-    name: 'Lore & Sagas',
+    name: 'About',
     slug: 'about',
     type: 'about',
     order: 2,
     isActive: true,
     animationType: 'fade',
     content: {
-      title: 'Lore',
-      subtitle: 'When Dharma weakens, the universe awakens its protectors',
-      description: 'DMCU is a bold cinematic world that blends ancient Indian mythic imagination with advanced technology.',
+      title: 'When Dharma Weakens, The Universe Awakens Its Protectors',
+      description: 'DMCU is a bold cinematic universe forged from the spiritual legacy of Indian mythology and the limitless possibilities of futuristic storytelling. Here, divine avatars, forgotten powers, and rising warriors stand together to restore cosmic balance.',
+      supportingText: 'From Vishnu’s eternal avatars to technologically enhanced defenders, DMCU creates a world where dharma is not just preserved—it evolves.',
+      secondaryBlock: 'Every hero, villain, and mythic force is connected through an expanding saga that redefines destiny.'
     }
   },
   {
@@ -39,35 +41,57 @@ const sections = [
     isActive: true,
     animationType: 'slide',
     content: {
-      title: 'Characters',
-      subtitle: 'Icons of light, shadow, and destiny',
-      description: 'Explore the live roster of heroes and villains.',
+      title: 'Guardians of the Dharma',
+      description: 'Explore legendary protectors, divine avatars, mythic beings, and technological warriors who shape the future of existence.'
     }
   },
   {
     name: 'Timeline',
     slug: 'timeline',
-    type: 'lore',
+    type: 'timeline',
     order: 4,
     isActive: true,
     animationType: 'fade',
     content: {
-      title: 'Cinematic Timeline',
-      subtitle: 'The 10-Year Master Plan (2026 - 2036)',
-      description: 'Follow the journey across the yugas.',
+      title: 'Universe Timeline',
+      subtitle: 'The 10-Year Master Plan'
+    }
+  },
+  {
+    name: 'Ranking',
+    slug: 'ranking',
+    type: 'ranking',
+    order: 5,
+    isActive: true,
+    animationType: 'fade',
+    content: {
+      title: 'Power Rankings',
+      description: 'Measure the strength, intelligence, combat mastery, and cosmic energy of DMCU’s most powerful entities.'
+    }
+  },
+  {
+    name: 'Blog',
+    slug: 'blog',
+    type: 'blog',
+    order: 6,
+    isActive: true,
+    animationType: 'fade',
+    content: {
+      title: 'DMCU Chronicles',
+      description: 'Stay updated with the latest sagas, theories, and cinematic breakthroughs.'
     }
   },
   {
     name: 'Trailer',
     slug: 'trailer',
     type: 'trailer',
-    order: 5,
+    order: 7,
     isActive: true,
     animationType: 'fade',
     content: {
-      title: 'Trailer',
-      subtitle: 'Let the world feel the scale',
-      description: 'Watch the official teaser.',
+      title: 'Witness The Beginning',
+      description: 'Step into the cinematic rise of Dharma Mythos and experience the future of mythological storytelling.',
+      buttonText: 'Watch Official Trailer',
       video: 'HdRhRODAF-Y'
     }
   },
@@ -75,13 +99,12 @@ const sections = [
     name: 'Comic',
     slug: 'comic',
     type: 'comic',
-    order: 6,
+    order: 8,
     isActive: true,
     animationType: 'float',
     content: {
-      title: 'Comic Nexus',
-      subtitle: 'Read the legends of DMCU',
-      description: 'Dive deep into the illustrated stories of our heroes.',
+      title: 'Comic Archives',
+      description: 'Enter the official DMCU comic database and experience the origins, wars, and hidden sagas that define the universe.'
     }
   }
 ];

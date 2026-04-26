@@ -1,8 +1,6 @@
-const fs = require("fs/promises");
-const path = require("path");
-
 const Character = require("../models/Character");
-const { getUploadedFilePath, uploadRoot } = require("../middleware/uploadMiddleware");
+const { getUploadedFilePath } = require("../middleware/uploadMiddleware");
+const cloudinary = require("cloudinary").v2;
 
 const getFirstFile = (req, fieldName) => {
   if (!req.files || !req.files[fieldName] || req.files[fieldName].length === 0) {
@@ -51,31 +49,19 @@ const parsePowers = (powersInput) => {
   return parsePowerValue(powersInput);
 };
 
-const removeStoredFile = async (storedPath) => {
-  if (!storedPath) {
-    return;
-  }
-
-  const absolutePath = path.join(process.cwd(), storedPath.replace(/^\//, ""));
-  const normalizedAbsolutePath = path.normalize(absolutePath);
-  const normalizedUploadRoot = path.normalize(uploadRoot);
-  const relativeToUploadRoot = path.relative(normalizedUploadRoot, normalizedAbsolutePath);
-
-  if (relativeToUploadRoot.startsWith("..") || path.isAbsolute(relativeToUploadRoot)) {
-    return;
-  }
-
+const removeStoredFile = async (url) => {
+  if (!url || !url.includes("cloudinary")) return;
+  
   try {
-    await fs.unlink(normalizedAbsolutePath);
-  } catch (error) {
-    if (error.code !== "ENOENT") {
-      throw error;
-    }
+    const publicId = url.split("/").pop().split(".")[0];
+    await cloudinary.uploader.destroy(`dmcu/${publicId}`);
+  } catch (err) {
+    console.error("Cloudinary delete failed", err);
   }
 };
 
 const cleanupUploadedFiles = async (...files) => {
-  await Promise.all(files.map((file) => removeStoredFile(getUploadedFilePath(file))));
+  // Cloudinary storage usually handles aborted uploads, but we can destroy if needed
 };
 
 const createCharacter = async (req, res, next) => {
@@ -299,21 +285,12 @@ const deleteCharacter = async (req, res, next) => {
 
 const getCharacterRanking = async (req, res, next) => {
   try {
-    const characters = await Character.find();
+    const characters = await Character.find().sort({ rankPoints: -1, votes: -1 }).limit(10);
     
-    // Sort logic can be identical to frontend or done via aggregation
-    // If frontend expects all of them and sorts anyway, returning all is fine.
-    // Let's do a basic sort by strength just as an example
-    const sorted = characters.sort((a, b) => {
-      const aPower = (a.stats?.strength || 0) + (a.stats?.intelligence || 0) + (a.stats?.energy || 0) + (a.stats?.combat || 0);
-      const bPower = (b.stats?.strength || 0) + (b.stats?.intelligence || 0) + (b.stats?.energy || 0) + (b.stats?.combat || 0);
-      return bPower - aPower;
-    });
-
     res.json({
       success: true,
-      count: sorted.length,
-      data: sorted
+      count: characters.length,
+      data: characters
     });
   } catch (error) {
     next(error);

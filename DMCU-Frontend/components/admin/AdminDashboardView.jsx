@@ -1,18 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 
 import AdminSidebar from "@/components/admin/AdminSidebar";
+import CinematicBackdrop from "@/components/CinematicBackdrop";
 import CharacterEditorForm from "@/components/admin/CharacterEditorForm";
 import CharacterManagementList from "@/components/admin/CharacterManagementList";
-import CinematicBackdrop from "@/components/CinematicBackdrop";
 import BlogEditorForm from "@/components/admin/BlogEditorForm";
 import BlogManagementList from "@/components/admin/BlogManagementList";
 import ThemeSettingsView from "@/components/admin/ThemeSettingsView";
 import SectionManagerView from "@/components/admin/SectionManagerView";
 import ComicManagerView from "@/components/admin/ComicManagerView";
+import AnalyticsDashboardView from "@/components/admin/AnalyticsDashboardView";
+import TrailerManagerView from "@/components/admin/TrailerManagerView";
+import SEOManagerView from "@/components/admin/SEOManagerView";
+import UserManagerView from "@/components/admin/UserManagerView";
+import MotionManagerView from "@/components/admin/MotionManagerView";
+import RankingManagerView from "@/components/admin/RankingManagerView";
+import NotificationManagerView from "@/components/admin/NotificationManagerView";
+import AdminSubmissionViewer from "@/components/admin/AdminSubmissionViewer";
+import AdminSettingsView from "@/components/admin/AdminSettingsView";
 import { clearStoredAdminSession, getStoredAdminSession } from "@/lib/admin-auth";
 import {
   createCharacterRequest,
@@ -25,407 +34,205 @@ import {
   deleteBlogRequest
 } from "@/lib/admin-api";
 
-const isAuthorizationError = (error) =>
-  typeof error?.message === "string" && error.message.toLowerCase().includes("not authorized");
-
 export default function AdminDashboardView() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
   const [session, setSession] = useState(null);
-  const [characters, setCharacters] = useState([]);
-  const [status, setStatus] = useState("loading");
-  const [errorMessage, setErrorMessage] = useState("");
-  const [editorMode, setEditorMode] = useState("create");
-  const [selectedCharacterId, setSelectedCharacterId] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState("");
+  const [activeTab, setActiveTab] = useState("analytics");
   const [reloadKey, setReloadKey] = useState(0);
   const [banner, setBanner] = useState(null);
+  const [busy, setBusy] = useState(false);
 
-  // Tabs state
-  const [activeTab, setActiveTab] = useState("characters"); // "characters" or "blogs"
-
-  // Blog states
+  // Character States
+  const [characters, setCharacters] = useState([]);
+  const [editingCharacter, setEditingCharacter] = useState(null);
+  
+  // Blog States
   const [blogs, setBlogs] = useState([]);
-  const [blogStatus, setBlogStatus] = useState("loading");
-  const [blogEditorMode, setBlogEditorMode] = useState("create");
-  const [selectedBlogId, setSelectedBlogId] = useState(null);
-  const [blogSaving, setBlogSaving] = useState(false);
-  const [blogDeletingId, setBlogDeletingId] = useState("");
+  const [editingBlog, setEditingBlog] = useState(null);
+
+  const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     const storedSession = getStoredAdminSession();
-
     if (!storedSession?.token) {
       router.replace("/admin/login");
       return;
     }
-
     setSession(storedSession);
     setReady(true);
   }, [router]);
 
+  const loadData = useCallback(async () => {
+    if (!ready) return;
+    try {
+      setStatus("loading");
+      const [charPayload, blogPayload] = await Promise.all([
+        fetchCharactersRequest(),
+        fetchBlogsRequest().catch(() => ({ data: [] }))
+      ]);
+      setCharacters(charPayload.data || []);
+      setBlogs(blogPayload.data || []);
+      setStatus("success");
+    } catch (error) {
+      setStatus("error");
+      setBanner({ type: "error", message: "Failed to synchronize multiverse data." });
+    }
+  }, [ready]);
+
   useEffect(() => {
-    if (!ready) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const loadData = async () => {
-      try {
-        setStatus("loading");
-        setBlogStatus("loading");
-        setErrorMessage("");
-
-        const [charPayload, blogPayload] = await Promise.all([
-          fetchCharactersRequest({ signal: controller.signal }).catch(e => { throw e; }),
-          fetchBlogsRequest({ signal: controller.signal }).catch(e => { return { data: [] }; }) // Fail graceful if no blogs route yet
-        ]);
-
-        setCharacters(Array.isArray(charPayload.data) ? charPayload.data : []);
-        setBlogs(Array.isArray(blogPayload.data) ? blogPayload.data : []);
-        
-        setStatus("success");
-        setBlogStatus("success");
-      } catch (error) {
-        if (error.name === "AbortError") return;
-        setStatus("error");
-        setBlogStatus("error");
-        setErrorMessage(error.message || "Unable to load the library.");
-      }
-    };
-
     loadData();
-
-    return () => controller.abort();
-  }, [ready, reloadKey]);
-
-  const selectedBlog = useMemo(
-    () => blogs.find((blog) => blog._id === selectedBlogId) || null,
-    [blogs, selectedBlogId]
-  );
-
-  const selectedCharacter = useMemo(
-    () => characters.find((character) => character._id === selectedCharacterId) || null,
-    [characters, selectedCharacterId]
-  );
-
-  const heroCount = useMemo(
-    () => characters.filter((character) => character.role === "hero").length,
-    [characters]
-  );
-  const villainCount = useMemo(
-    () => characters.filter((character) => character.role === "villain").length,
-    [characters]
-  );
-
-  const handleSessionExpired = () => {
-    clearStoredAdminSession();
-    router.replace("/admin/login");
-  };
-
-  const handleRefresh = () => {
-    setReloadKey((currentValue) => currentValue + 1);
-  };
-
-  const handleCreateNew = () => {
-    if (activeTab === "characters") {
-       setEditorMode("create");
-       setSelectedCharacterId(null);
-    } else {
-       setBlogEditorMode("create");
-       setSelectedBlogId(null);
-    }
-    setBanner(null);
-    if (typeof window !== "undefined") window.location.hash = "editor";
-  };
-
-  const handleEditCharacter = (character) => {
-    setEditorMode("edit");
-    setSelectedCharacterId(character._id);
-    setBanner(null);
-
-    if (typeof window !== "undefined") {
-      window.location.hash = "editor";
-    }
-  };
-
-  const handleSubmitCharacter = async (formData) => {
-    try {
-      setSaving(true);
-      setBanner(null);
-
-      if (editorMode === "edit" && selectedCharacterId) {
-        await updateCharacterRequest(session.token, selectedCharacterId, formData);
-        setBanner({ type: "success", message: "Character updated successfully." });
-      } else {
-        await createCharacterRequest(session.token, formData);
-        setBanner({ type: "success", message: "Character created successfully." });
-      }
-
-      setEditorMode("create");
-      setSelectedCharacterId(null);
-      handleRefresh();
-    } catch (error) {
-      if (isAuthorizationError(error)) handleSessionExpired();
-      setBanner({ type: "error", message: error.message || "Unable to save this character." });
-      throw error;
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleEditBlog = (blog) => {
-    setBlogEditorMode("edit");
-    setSelectedBlogId(blog._id);
-    setBanner(null);
-    if (typeof window !== "undefined") window.location.hash = "editor";
-  };
-
-  const handleSubmitBlog = async (formData) => {
-    try {
-      setBlogSaving(true);
-      setBanner(null);
-
-      if (blogEditorMode === "edit" && selectedBlogId) {
-        await updateBlogRequest(session.token, selectedBlogId, formData);
-        setBanner({ type: "success", message: "Blog updated successfully." });
-      } else {
-        await createBlogRequest(session.token, formData);
-        setBanner({ type: "success", message: "Blog created successfully." });
-      }
-
-      setBlogEditorMode("create");
-      setSelectedBlogId(null);
-      handleRefresh();
-    } catch (error) {
-      if (isAuthorizationError(error)) handleSessionExpired();
-      setBanner({ type: "error", message: error.message || "Unable to save this blog." });
-      throw error;
-    } finally {
-      setBlogSaving(false);
-    }
-  };
-
-  const handleDeleteCharacter = async (character) => {
-    if (typeof window !== "undefined" && !window.confirm(`Delete ${character.name}?`)) return;
-    try {
-      setDeletingId(character._id);
-      setBanner(null);
-      await deleteCharacterRequest(session.token, character._id);
-      if (selectedCharacterId === character._id) {
-        setEditorMode("create");
-        setSelectedCharacterId(null);
-      }
-      setBanner({ type: "success", message: `${character.name} was deleted successfully.` });
-      handleRefresh();
-    } catch (error) {
-      if (isAuthorizationError(error)) handleSessionExpired();
-      setBanner({ type: "error", message: error.message || "Unable to delete this character." });
-    } finally {
-      setDeletingId("");
-    }
-  };
-
-  const handleDeleteBlog = async (blog) => {
-    if (typeof window !== "undefined" && !window.confirm(`Delete ${blog.title}?`)) return;
-    try {
-      setBlogDeletingId(blog._id);
-      setBanner(null);
-      await deleteBlogRequest(session.token, blog._id);
-      if (selectedBlogId === blog._id) {
-        setBlogEditorMode("create");
-        setSelectedBlogId(null);
-      }
-      setBanner({ type: "success", message: `${blog.title} deleted.` });
-      handleRefresh();
-    } catch (error) {
-      if (isAuthorizationError(error)) handleSessionExpired();
-      setBanner({ type: "error", message: error.message || "Unable to delete this blog." });
-    } finally {
-      setBlogDeletingId("");
-    }
-  };
+  }, [loadData, reloadKey]);
 
   const handleLogout = () => {
     clearStoredAdminSession();
     router.replace("/admin/login");
   };
 
-  if (!ready || !session?.token) {
-    return (
-      <main className="relative min-h-screen overflow-hidden bg-obsidian text-parchment">
-        <CinematicBackdrop />
-        <div className="relative z-10 flex min-h-screen items-center justify-center px-4">
-          <div className="section-panel gold-panel px-8 py-10 text-center">
-            <p className="text-sm uppercase tracking-[0.3em] text-amber-100/70">Loading Dashboard</p>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  // Character Actions
+  const handleCharacterSubmit = async (formData) => {
+    try {
+      setBusy(true);
+      let res;
+      if (editingCharacter) {
+        res = await updateCharacterRequest(session.token, editingCharacter._id, formData);
+        setBanner({ type: "success", message: `Character ${res.data.name} updated successfully.` });
+      } else {
+        res = await createCharacterRequest(session.token, formData);
+        setBanner({ type: "success", message: `Character ${res.data.name} forged in the archives.` });
+      }
+      setEditingCharacter(null);
+      setReloadKey(k => k + 1);
+    } catch (err) {
+      throw err;
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCharacterDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this character from existence?")) return;
+    try {
+      setBusy(true);
+      await deleteCharacterRequest(session.token, id);
+      setBanner({ type: "success", message: "Character deleted successfully." });
+      setReloadKey(k => k + 1);
+    } catch (err) {
+      setBanner({ type: "error", message: err.message });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!ready || !session?.token) return null;
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-obsidian text-parchment">
+    <main className="min-h-screen bg-obsidian text-parchment flex">
       <CinematicBackdrop />
+      
+      {/* Sidebar - Fixed */}
+      <AdminSidebar 
+        admin={session.admin} 
+        activeTab={activeTab} 
+        setActiveTab={setActiveTab} 
+        onLogout={handleLogout} 
+      />
 
-      <div className="relative z-10 mx-auto max-w-[1500px] px-4 py-6 sm:px-6 lg:px-8">
-        <div className="grid gap-6 xl:grid-cols-[300px,1fr]">
-          <AdminSidebar
-            admin={session.admin}
-            totalCharacters={characters.length}
-            heroCount={heroCount}
-            villainCount={villainCount}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            onLogout={handleLogout}
-            onCreateNew={handleCreateNew}
-          />
-
-          <div className="space-y-6">
-            <section id="overview" className="section-panel gold-panel overflow-hidden p-6 sm:p-8">
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between border-b border-primary/20 pb-6 mb-6">
-                <div>
-                  <span className="eyebrow">Dashboard Core</span>
-                  <h1 className="mt-4 font-display text-4xl uppercase tracking-[0.16em] text-parchment sm:text-5xl">
-                    Command Console
-                  </h1>
+      {/* Main Content - Offset by Sidebar Width */}
+      <div className="flex-1 ml-72 p-10 relative z-10 overflow-y-auto">
+        <header className="mb-12 flex items-center justify-between">
+          <div>
+             <h2 className="text-[10px] uppercase tracking-[0.5em] text-primary font-black mb-2 animate-in fade-in slide-in-from-left duration-700">System Sector / {activeTab}</h2>
+             <h1 className="font-display text-5xl uppercase tracking-widest animate-in fade-in slide-in-from-left duration-1000">
+               {activeTab.replace(/([A-Z])/g, ' $1')}
+             </h1>
+          </div>
+          
+          <div className="flex items-center gap-4">
+             <button className="w-12 h-12 rounded-xl border border-white/5 bg-white/5 flex items-center justify-center hover:bg-white/10 transition-all">🔔</button>
+             <div className="flex items-center gap-4 pl-4 border-l border-white/10">
+                <div className="text-right">
+                   <p className="text-[10px] font-bold uppercase tracking-widest">{session.admin.name}</p>
+                   <p className="text-[8px] text-primary uppercase tracking-[0.2em]">Master Admin</p>
                 </div>
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent" />
+             </div>
+          </div>
+        </header>
 
-                <div className="flex flex-wrap gap-3">
-                  <Link href="/" className="ghost-button">
-                    Visit Homepage
-                  </Link>
-                  <Link href="/blog" className="ghost-button">
-                    Visit Lore
-                  </Link>
-                </div>
-              </div>
+        {banner && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className={`mb-8 p-4 rounded-xl border ${banner.type === 'success' ? 'border-emerald-500/20 bg-emerald-500/5 text-emerald-400' : 'border-red-500/20 bg-red-500/5 text-red-400'} text-[10px] uppercase tracking-widest font-bold flex justify-between items-center`}
+          >
+            {banner.message}
+            <button onClick={() => setBanner(null)}>×</button>
+          </motion.div>
+        )}
 
-              {/* TABS CONTAINER */}
-               <div className="flex gap-4 border-b border-white/10 mx-[-32px] px-8 pb-0 overflow-x-auto hide-scrollbar">
-                   <button onClick={() => setActiveTab("characters")} className={`px-4 py-4 uppercase tracking-widest text-xs font-bold transition-colors whitespace-nowrap ${activeTab === "characters" ? "text-primary border-b-2 border-primary" : "text-muted hover:text-white"}`}>Character Roster</button>
-                   <button onClick={() => setActiveTab("blogs")} className={`px-4 py-4 uppercase tracking-widest text-xs font-bold transition-colors whitespace-nowrap ${activeTab === "blogs" ? "text-primary border-b-2 border-primary" : "text-muted hover:text-white"}`}>Lore Archives</button>
-                   <button onClick={() => setActiveTab("themes")} className={`px-4 py-4 uppercase tracking-widest text-xs font-bold transition-colors whitespace-nowrap ${activeTab === "themes" ? "text-primary border-b-2 border-primary" : "text-muted hover:text-white"}`}>Theme Engine</button>
-                   <button onClick={() => setActiveTab("sections")} className={`px-4 py-4 uppercase tracking-widest text-xs font-bold transition-colors whitespace-nowrap ${activeTab === "sections" ? "text-primary border-b-2 border-primary" : "text-muted hover:text-white"}`}>Section Manager</button>
-                   <button onClick={() => setActiveTab("comics")} className={`px-4 py-4 uppercase tracking-widest text-xs font-bold transition-colors whitespace-nowrap ${activeTab === "comics" ? "text-primary border-b-2 border-primary" : "text-muted hover:text-white"}`}>Comic Manager</button>
-               </div>
-
-              <div className="mt-8 grid gap-4 lg:grid-cols-3">
-                <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-5">
-                  <p className="text-xs uppercase tracking-[0.32em] text-amber-100/60">Roster Status</p>
-                  <p className="mt-4 font-display text-3xl uppercase tracking-[0.14em] text-parchment">
-                    {status === "loading" ? "Syncing" : `${characters.length} Profiles`}
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-ash">
-                    The dashboard reads from `GET /api/characters` and shows the current public roster.
-                  </p>
-                </div>
-
-                <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-5">
-                  <p className="text-xs uppercase tracking-[0.32em] text-amber-100/60">Upload Support</p>
-                  <p className="mt-4 font-display text-3xl uppercase tracking-[0.14em] text-parchment">
-                    Images + GLB
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-ash">
-                    Character image uploads are required for new entries. `.glb` model uploads remain optional.
-                  </p>
-                </div>
-
-                <div className="rounded-[1.75rem] border border-white/10 bg-black/25 p-5">
-                  <p className="text-xs uppercase tracking-[0.32em] text-amber-100/60">Current Admin</p>
-                  <p className="mt-4 font-display text-3xl uppercase tracking-[0.14em] text-parchment">
-                    {session.admin.name}
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-ash">{session.admin.email}</p>
-                </div>
-              </div>
-            </section>
-
-            {banner && (
-              <div
-                className={`rounded-[1.75rem] border px-6 py-5 text-sm leading-7 ${
-                  banner.type === "success"
-                    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-100"
-                    : "border-red-400/20 bg-red-500/10 text-red-100"
-                }`}
-              >
-                {banner.message}
-              </div>
-            )}
-
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.5 }}
+            className="w-full"
+          >
+            {activeTab === "analytics" && <AnalyticsDashboardView />}
+            
             {activeTab === "characters" && (
-              <>
-                <CharacterEditorForm
-                  mode={editorMode}
-                  character={selectedCharacter}
-                  busy={saving}
-                  onSubmit={handleSubmitCharacter}
-                  onCancel={handleCreateNew}
+              <div className="space-y-8">
+                <CharacterEditorForm 
+                  mode={editingCharacter ? "edit" : "create"} 
+                  character={editingCharacter}
+                  busy={busy} 
+                  onSubmit={handleCharacterSubmit} 
+                  onCancel={() => setEditingCharacter(null)}
                 />
-
-                <CharacterManagementList
-                  characters={characters}
-                  status={status}
-                  errorMessage={errorMessage}
-                  deletingId={deletingId}
-                  activeCharacterId={selectedCharacterId}
-                  onRefresh={handleRefresh}
-                  onEdit={handleEditCharacter}
-                  onDelete={handleDeleteCharacter}
+                <CharacterManagementList 
+                  characters={characters} 
+                  status={status} 
+                  onRefresh={() => setReloadKey(k => k+1)} 
+                  onEdit={setEditingCharacter}
+                  onDelete={handleCharacterDelete}
                 />
-              </>
+              </div>
             )}
 
             {activeTab === "blogs" && (
-               <div className="space-y-6">
-                 <section id="editor" className="section-panel gold-panel p-6 sm:p-8">
-                   <BlogEditorForm 
-                     mode={blogEditorMode} 
-                     blog={selectedBlog} 
-                     busy={blogSaving} 
-                     onSubmit={handleSubmitBlog} 
-                   />
-                 </section>
-
-                 <section id="library" className="section-panel gold-panel p-6 sm:p-8">
-                   <BlogManagementList 
-                     blogs={blogs} 
-                     status={blogStatus} 
-                     onEdit={handleEditBlog} 
-                     onDelete={handleDeleteBlog} 
-                     deletingId={blogDeletingId} 
-                   />
-                 </section>
-               </div>
+              <div className="space-y-8">
+                <BlogEditorForm mode="create" busy={false} onSubmit={() => setReloadKey(k => k+1)} />
+                <BlogManagementList blogs={blogs} status={status} />
+              </div>
             )}
 
-             {activeTab === "themes" && (
-                <div className="space-y-6">
-                  <section className="section-panel gold-panel p-6 sm:p-8">
-                     <ThemeSettingsView />
-                  </section>
-                </div>
-             )}
-
-             {activeTab === "sections" && (
-                <div className="space-y-6">
-                  <section className="section-panel gold-panel p-6 sm:p-8">
-                     <SectionManagerView />
-                  </section>
-                </div>
-             )}
-
-             {activeTab === "comics" && (
-                <div className="space-y-6">
-                  <section className="section-panel gold-panel p-6 sm:p-8">
-                     <ComicManagerView />
-                  </section>
-                </div>
-             )}
-          </div>
-        </div>
+            {activeTab === "themes" && <ThemeSettingsView />}
+            {activeTab === "sections" && <SectionManagerView />}
+            {activeTab === "comics" && <ComicManagerView />}
+            {activeTab === "trailers" && <TrailerManagerView />}
+            {activeTab === "seo" && <SEOManagerView />}
+            {activeTab === "users" && <UserManagerView />}
+            {activeTab === "motion" && <MotionManagerView />}
+            {activeTab === "rankings" && <RankingManagerView />}
+            {activeTab === "notifications" && <NotificationManagerView />}
+            {activeTab === "submissions" && <AdminSubmissionViewer />}
+            {activeTab === "settings" && <AdminSettingsView />}
+            
+            {/* Placeholders for new tabs */}
+            {['future_module'].includes(activeTab) && (
+              <div className="glass-card p-20 border border-dashed border-primary/20 flex flex-col items-center justify-center text-center">
+                 <div className="text-6xl mb-6 opacity-20">⚙️</div>
+                 <h3 className="font-display text-2xl uppercase tracking-widest text-primary mb-4">{activeTab} Manager</h3>
+                 <p className="text-ash text-xs uppercase tracking-[0.3em] max-w-md leading-relaxed">
+                   The architecture for this module is being synchronized with the Nexus Core. 
+                   Full administrative control will be live in the next protocol update.
+                 </p>
+              </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </main>
   );

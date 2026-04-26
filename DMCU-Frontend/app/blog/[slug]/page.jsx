@@ -5,8 +5,6 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 
 import Container from "@/components/Container";
-import SiteHeader from "@/components/SiteHeader";
-import FooterSection from "@/sections/FooterSection";
 import Reveal from "@/components/Reveal";
 import CinematicBackdrop from "@/components/CinematicBackdrop";
 import { buildMediaUrl, fetchJson } from "@/lib/api";
@@ -32,7 +30,6 @@ export default function BlogDetailPage({ params }) {
   if (status === "loading") {
     return (
       <main className="relative min-h-screen bg-background">
-         <SiteHeader />
          <div className="flex h-screen items-center justify-center">
             <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin" />
          </div>
@@ -43,7 +40,6 @@ export default function BlogDetailPage({ params }) {
   if (status === "error" || !blog) {
     return (
       <main className="relative min-h-screen bg-background">
-         <SiteHeader />
          <div className="flex h-screen items-center justify-center text-center">
              <div>
                 <h1 className="text-4xl font-display text-primary tracking-widest uppercase">Archive Not Found</h1>
@@ -59,7 +55,6 @@ export default function BlogDetailPage({ params }) {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background">
        <CinematicBackdrop />
-       <SiteHeader />
 
        <article className="relative z-10 pt-32 pb-24">
           <Container>
@@ -114,8 +109,6 @@ export default function BlogDetailPage({ params }) {
              )}
           </Container>
        </article>
-
-       <FooterSection />
     </main>
   );
 }

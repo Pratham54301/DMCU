@@ -20,57 +20,48 @@ const pillars = [
   }
 ];
 
-export default function AboutSection({ content }) {
+export default function AboutSection({ content, id }) {
   return (
-    <SectionWrapper id="about">
+    <SectionWrapper id={id || "about"}>
       <Container>
-        <div className="text-center mb-16">
+        <div className="text-center max-w-4xl mx-auto mb-16">
           <SectionHeading
-            eyebrow="Lore"
-            title={content?.title || "When Dharma weakens, the universe awakens its protectors"}
-            description={content?.description || "DMCU is a bold cinematic world that blends ancient Indian mythic imagination with advanced technology, dark prophecy, and cosmic-scale storytelling. The result is a universe that feels sacred, dangerous, and unmistakably modern."}
+            eyebrow="Mission"
+            title={content?.title || "When Dharma Weakens, The Universe Awakens Its Protectors"}
+            align="center"
           />
+          <div className="prose prose-lg text-muted mx-auto mt-8">
+            <p className="text-lg leading-relaxed">
+              {content?.description || "DMCU is a bold cinematic universe forged from the spiritual legacy of Indian mythology and the limitless possibilities of futuristic storytelling."}
+            </p>
+            {content?.supportingText && (
+              <p className="text-base leading-relaxed opacity-80 border-y border-primary/10 py-6 my-8 italic">
+                {content.supportingText}
+              </p>
+            )}
+            {content?.secondaryBlock && (
+              <p className="text-sm leading-relaxed uppercase tracking-widest text-primary/60 font-semibold">
+                {content.secondaryBlock}
+              </p>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-          {/* Text Content */}
-          <div className="space-y-8">
-            <div className="prose prose-lg text-muted">
-              <p className="text-lg leading-relaxed">
-                In the shadowed corridors of forgotten temples and neon-drenched megacities, the ancient forces of Dharma stir once more. Heroes forged from divine essence clash with villains born of cosmic imbalance, each battle echoing the eternal struggle between order and chaos.
-              </p>
-            </div>
-
-            <div className="grid gap-6 sm:grid-cols-2">
-              {pillars.map((pillar, index) => (
-                <CinematicCard
-                  key={pillar.title}
-                  className="p-6"
-                >
-                  <h3 className="font-display text-lg uppercase tracking-[0.16em] text-primary mb-3">
-                    {pillar.title}
-                  </h3>
-                  <p className="text-sm leading-7 text-muted">{pillar.description}</p>
-                </CinematicCard>
-              ))}
-            </div>
-          </div>
-
-          {/* Image/Visual Content */}
-          <div className="relative">
-            <CinematicCard className="p-8 text-center">
-              <div className="relative h-96 bg-gradient-radial rounded-2xl flex items-center justify-center">
-                <div className="text-6xl animate-rotate-chakra">🕉️</div>
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-accent/10 rounded-2xl"></div>
+        <div className="grid gap-8 md:grid-cols-3">
+          {pillars.map((pillar, index) => (
+            <CinematicCard
+              key={pillar.title}
+              className="p-8 text-center flex flex-col items-center justify-center min-h-[280px]"
+            >
+              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-6 border border-primary/20">
+                <span className="text-xl">{index + 1}</span>
               </div>
-              <p className="mt-6 text-primary font-semibold uppercase tracking-[0.28em]">
-                The Eternal Cycle
-              </p>
-              <p className="mt-2 text-sm text-muted">
-                Dharma's wheel turns eternally, binding past and future in an unbreakable chain.
-              </p>
+              <h3 className="font-display text-xl uppercase tracking-[0.2em] text-primary mb-4">
+                {pillar.title}
+              </h3>
+              <p className="text-sm leading-7 text-muted">{pillar.description}</p>
             </CinematicCard>
-          </div>
+          ))}
         </div>
       </Container>
     </SectionWrapper>

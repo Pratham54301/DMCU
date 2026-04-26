@@ -10,7 +10,8 @@ const themeSchema = new mongoose.Schema({
     muted: { type: String, required: true },
     accent: { type: String, required: true },
     surface: { type: String, required: true },
-    surfaceStrong: { type: String, required: true }
+    surfaceStrong: { type: String, required: true },
+    characterBg: { type: String, default: '#000000' }
   },
   heroSection: {
     backgroundStyle: { type: String, enum: ['gradient', 'image', 'particles'], default: 'gradient' },

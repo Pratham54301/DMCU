@@ -6,8 +6,6 @@ import Link from "next/link";
 import { fetchJson, buildMediaUrl } from "@/lib/api";
 
 import Container from "@/components/Container";
-import SiteHeader from "@/components/SiteHeader";
-import FooterSection from "@/sections/FooterSection";
 import CinematicBackdrop from "@/components/CinematicBackdrop";
 import Reveal from "@/components/Reveal";
 import SectionHeading from "@/components/SectionHeading";
@@ -44,7 +42,6 @@ export default function RankingsPage() {
   return (
     <main className="relative min-h-screen bg-background text-text">
        <CinematicBackdrop />
-       <SiteHeader />
 
        <div className="relative z-10 pt-32 pb-24">
           <Container>
@@ -139,8 +136,6 @@ export default function RankingsPage() {
              )}
           </Container>
        </div>
-
-       <FooterSection />
     </main>
   );
 }

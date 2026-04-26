@@ -1,8 +1,6 @@
-const fs = require("fs/promises");
-const path = require("path");
-
 const Blog = require("../models/Blog");
-const { getUploadedFilePath, uploadRoot } = require("../middleware/uploadMiddleware");
+const { getUploadedFilePath } = require("../middleware/uploadMiddleware");
+const cloudinary = require("cloudinary").v2;
 
 const getFirstFile = (req, fieldName) => {
   if (!req.files || !req.files[fieldName] || req.files[fieldName].length === 0) return null;
@@ -20,22 +18,18 @@ const parseTagsValue = (value) => {
   return trimmedValue.split(",").map((t) => t.trim()).filter(Boolean);
 };
 
-const removeStoredFile = async (storedPath) => {
-  if (!storedPath) return;
-  const absolutePath = path.join(process.cwd(), storedPath.replace(/^\//, ""));
-  const normalizedAbsolutePath = path.normalize(absolutePath);
-  const normalizedUploadRoot = path.normalize(uploadRoot);
-  const relativeToUploadRoot = path.relative(normalizedUploadRoot, normalizedAbsolutePath);
-  if (relativeToUploadRoot.startsWith("..") || path.isAbsolute(relativeToUploadRoot)) return;
+const removeStoredFile = async (url) => {
+  if (!url || !url.includes("cloudinary")) return;
   try {
-    await fs.unlink(normalizedAbsolutePath);
-  } catch (error) {
-    if (error.code !== "ENOENT") throw error;
+    const publicId = url.split("/").pop().split(".")[0];
+    await cloudinary.uploader.destroy(`dmcu/${publicId}`);
+  } catch (err) {
+    console.error("Cloudinary delete failed", err);
   }
 };
 
 const cleanupUploadedFiles = async (...files) => {
-  await Promise.all(files.map((file) => removeStoredFile(getUploadedFilePath(file))));
+  // Cloudinary handles aborted uploads or we can destroy if needed
 };
 
 const generateSlug = (title) => {

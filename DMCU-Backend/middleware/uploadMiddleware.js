@@ -1,86 +1,147 @@
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("cloudinary").v2;
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const multer = require("multer");
+const path = require("path");
 
-const uploadRoot = path.join(process.cwd(), "uploads");
-const imageUploadPath = path.join(uploadRoot, "images");
-const modelUploadPath = path.join(uploadRoot, "models");
-
-[uploadRoot, imageUploadPath, modelUploadPath].forEach((directory) => {
-  fs.mkdirSync(directory, { recursive: true });
+// Cloudinary Configuration
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-const storage = multer.diskStorage({
-  destination(req, file, cb) {
-    if (file.fieldname === "image" || file.fieldname === "imageTransparent") {
-      return cb(null, imageUploadPath);
-    }
-
-    if (file.fieldname === "model3d") {
-      return cb(null, modelUploadPath);
-    }
-
-    return cb(new Error("Unexpected upload field."));
-  },
-  filename(req, file, cb) {
-    const extension = path.extname(file.originalname).toLowerCase();
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${file.fieldname}-${uniqueSuffix}${extension}`);
+// Storage for Images (Characters, Blogs, Comics)
+const imageStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    const folder = file.fieldname === "imageTransparent" ? "dmcu/transparent" : "dmcu/images";
+    return {
+      folder: folder,
+      allowed_formats: ["jpg", "png", "jpeg", "webp", "svg", "avif"],
+      transformation: [{ quality: "auto" }]
+    };
   }
 });
 
-const imageExtensions = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".avif"];
-
-const upload = multer({
-  storage,
-  limits: {
-    fileSize: 20 * 1024 * 1024
-  },
-  fileFilter(req, file, cb) {
-    const extension = path.extname(file.originalname).toLowerCase();
-
-    if (file.fieldname === "image" || file.fieldname === "imageTransparent") {
-      if (file.mimetype.startsWith("image/") || imageExtensions.includes(extension)) {
-        return cb(null, true);
-      }
-
-      return cb(new Error(`Only image files are allowed for the ${file.fieldname} field.`));
-    }
-
-    if (file.fieldname === "model3d") {
-      if (extension === ".glb") {
-        return cb(null, true);
-      }
-
-      return cb(new Error("Only .glb files are allowed for the model3d field."));
-    }
-
-    return cb(new Error("Unexpected upload field."));
+// Storage for Models (GLB)
+const modelStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "dmcu/models",
+      resource_type: "raw", // Required for GLB
+      public_id: `model-${Date.now()}`
+    };
   }
 });
 
-const characterUpload = upload.fields([
+// Storage for Documents (PDF)
+const docStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "dmcu/docs",
+      resource_type: "raw",
+      public_id: `doc-${Date.now()}`
+    };
+  }
+});
+
+// Unified dynamic storage selector
+const storage = multer.diskStorage({}); // Placeholder for multer-storage-cloudinary doesn't support multiple stores easily with one instance
+// We'll define specific upload instances instead
+
+const imageUpload = multer({ 
+  storage: imageStorage,
+  limits: { fileSize: 10 * 1024 * 1024 } 
+});
+
+const characterUpload = multer({
+  storage: new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+      let resource_type = "image";
+      let folder = "dmcu/characters";
+      
+      if (file.fieldname === "model3d") {
+        resource_type = "raw";
+        folder = "dmcu/models";
+      } else if (file.fieldname === "imageTransparent") {
+        folder = "dmcu/characters/transparent";
+      }
+      
+      return {
+        folder: folder,
+        resource_type: resource_type,
+        public_id: `${file.fieldname}-${Date.now()}`
+      };
+    }
+  })
+}).fields([
   { name: "image", maxCount: 1 },
   { name: "imageTransparent", maxCount: 1 },
   { name: "model3d", maxCount: 1 }
 ]);
 
-const uploadImages = upload.fields([
+const comicUpload = multer({
+  storage: new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+      let resource_type = "image";
+      let folder = "dmcu/comics";
+      
+      if (file.fieldname === "pdfFile") {
+        resource_type = "raw";
+        folder = "dmcu/docs";
+      }
+      
+      return {
+        folder: folder,
+        resource_type: resource_type,
+        public_id: `${file.fieldname}-${Date.now()}`
+      };
+    }
+  })
+}).fields([
+  { name: "coverImage", maxCount: 1 },
+  { name: "pdfFile", maxCount: 1 }
+]);
+
+const blogUpload = multer({
+  storage: imageStorage
+}).fields([
   { name: "image", maxCount: 1 }
 ]);
 
-const getUploadedFilePath = (file) => {
-  if (!file) {
-    return null;
-  }
+const sectionArchitectUpload = multer({
+  storage: new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+      return {
+        folder: "dmcu/sections",
+        resource_type: "auto",
+        public_id: `${file.fieldname}-${Date.now()}`
+      };
+    }
+  })
+}).any();
 
-  const relativePath = path.relative(uploadRoot, file.path).replace(/\\/g, "/");
-  return `/uploads/${relativePath}`;
+const trailerUpload = multer({
+  storage: imageStorage
+}).fields([
+  { name: "thumbnail", maxCount: 1 }
+]);
+
+const getUploadedFilePath = (file) => {
+  return file ? file.path : null;
 };
 
 module.exports = {
   characterUpload,
-  uploadImages,
+  comicUpload,
+  blogUpload,
+  trailerUpload,
+  sectionArchitectUpload,
   getUploadedFilePath,
-  uploadRoot
+  cloudinary
 };

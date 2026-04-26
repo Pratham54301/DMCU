@@ -5,12 +5,12 @@ import Container from "@/components/Container";
 import SectionHeading from "@/components/SectionHeading";
 import { SectionWrapper } from "@/components/motion/MotionComponents";
 
-export default function TrailerSection({ content }) {
+export default function TrailerSection({ content, id }) {
   const trailerUrl = "https://youtu.be/HdRhRODAF-Y?si=3Yg5gF8h0Ujzyd8Za";
   const displayUrl = content?.video ? `https://youtu.be/${content.video}` : trailerUrl;
 
   return (
-    <SectionWrapper id="trailer">
+    <SectionWrapper id={id || "trailer"}>
       <Container>
         <div className="text-center">
           <SectionHeading
@@ -55,7 +55,7 @@ export default function TrailerSection({ content }) {
                   <motion.span 
                     className="text-xs uppercase tracking-[0.5em] font-bold text-primary group-hover:text-white transition-colors duration-500"
                   >
-                    Watch Official Trailer
+                    {content?.buttonText || "Watch Official Trailer"}
                   </motion.span>
                 </div>
 

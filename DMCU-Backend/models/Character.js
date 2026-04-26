@@ -68,6 +68,18 @@ const characterSchema = new mongoose.Schema(
     model3d: {
       type: String,
       default: null
+    },
+    votes: {
+      type: Number,
+      default: 0
+    },
+    rankPoints: {
+      type: Number,
+      default: 0
+    },
+    voiceUrl: {
+      type: String,
+      default: null
     }
   },
   {

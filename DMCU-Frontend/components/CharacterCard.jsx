@@ -88,7 +88,7 @@ export default function CharacterCard({ character }) {
       {/* Action Button */}
       <div className="relative z-10 mt-8">
         <Link
-          href={`/character/${character._id}`}
+          href={`/characters/${character._id}`}
           className="inline-block w-full text-center rounded-xl border border-primary/30 bg-primary/5 py-3 text-xs font-bold uppercase tracking-[0.2em] text-primary transition-all duration-300 hover:bg-primary/20 hover:shadow-[0_0_20px_rgb(var(--primary-color)/0.3)] hover:scale-[1.02] active:scale-95"
         >
           View Full Profile

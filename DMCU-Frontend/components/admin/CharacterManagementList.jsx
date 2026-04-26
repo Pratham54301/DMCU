@@ -124,12 +124,12 @@ export default function CharacterManagementList({
                       <button
                         type="button"
                         className="ghost-button"
-                        onClick={() => onDelete(character)}
+                        onClick={() => onDelete(character._id)}
                         disabled={deletingId === character._id}
                       >
                         {deletingId === character._id ? "Deleting..." : "Delete"}
                       </button>
-                      <Link href={`/character/${character._id}`} className="ghost-button">
+                      <Link href={`/characters/${character._id}`} className="ghost-button">
                         View Public Page
                       </Link>
                     </div>

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import dynamic from "next/dynamic";
+import { CinematicCard, GlowButton } from "@/components/motion/MotionComponents";
+import NarrationEngine from "@/components/NarrationEngine";
 import { useLanguage } from "@/app/language-context";
 
 import Container from "@/components/Container";
@@ -38,70 +40,6 @@ export default function CharacterDetailPage({ characterId }) {
   const [errorMessage, setErrorMessage] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
   const { language, t } = useLanguage();
-
-  // TTS State
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const synth = useRef(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      synth.current = window.speechSynthesis;
-    }
-    return () => {
-      if (synth.current) synth.current.cancel();
-    };
-  }, []);
-
-  const handleSpeak = useCallback(() => {
-    if (!synth.current || !character) return;
-
-    if (isPaused) {
-      synth.current.resume();
-      setIsPaused(false);
-      setIsSpeaking(true);
-      return;
-    }
-
-    synth.current.cancel();
-    const textToRead = character.backstory?.[language] || character.description;
-    if (!textToRead) return;
-
-    const utterance = new SpeechSynthesisUtterance(textToRead);
-    
-    // Voice selection
-    const voices = synth.current.getVoices();
-    if (language === "hi") utterance.lang = "hi-IN";
-    else if (language === "gu") utterance.lang = "gu-IN";
-    else utterance.lang = "en-US";
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      setIsPaused(false);
-    };
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      setIsPaused(false);
-    };
-
-    synth.current.speak(utterance);
-  }, [character, language, isPaused]);
-
-  const handlePause = () => {
-    if (synth.current && isSpeaking && !isPaused) {
-      synth.current.pause();
-      setIsPaused(true);
-    }
-  };
-
-  const handleStop = () => {
-    if (synth.current) {
-      synth.current.cancel();
-      setIsSpeaking(false);
-      setIsPaused(false);
-    }
-  };
 
   useEffect(() => {
     if (!characterId) {
@@ -156,13 +94,16 @@ export default function CharacterDetailPage({ characterId }) {
   }
 
   return (
-    <div className="relative w-full min-h-screen bg-black overflow-hidden select-none">
+    <div className="relative w-full min-h-screen overflow-hidden select-none" style={{ backgroundColor: 'rgb(var(--character-bg-color))' }}>
       {/* Background Ambience */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgb(var(--primary-color)/0.05)_0%,transparent_70%)] pointer-events-none" />
       
       {/* 3D Model - Center Focus (Fixed to viewport) */}
       <div className="fixed inset-0 z-0">
-        <CharacterCanvas imageUrl={null} modelUrl={modelUrl} />
+        <CharacterCanvas 
+          imageUrl={buildMediaUrl(character.image)} 
+          modelUrl={modelUrl} 
+        />
         {/* Cinematic Vignette */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(0,0,0,0.6)_100%)] pointer-events-none" />
       </div>
@@ -297,60 +238,12 @@ export default function CharacterDetailPage({ characterId }) {
                 <div className="h-px w-24 bg-gradient-to-r from-primary/40 to-transparent" />
               </div>
               
-              {/* TTS Controls */}
-              <div className="flex items-center gap-3">
-                <AnimatePresence mode="wait">
-                  {!isSpeaking || isPaused ? (
-                    <motion.button
-                      key="play"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={handleSpeak}
-                      className="p-3 rounded-full bg-primary/10 border border-primary/20 text-primary hover:bg-primary/20 transition-all shadow-[0_0_15px_rgb(var(--primary-color)/0.1)]"
-                      title={t("listen")}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M19.114 5.636a9 9 0 0 1 0 12.728M16.463 8.288a5.25 5.25 0 0 1 0 7.424M6.75 8.25l4.72-4.72a.75.75 0 0 1 1.28.53v15.88a.75.75 0 0 1-1.28.53l-4.72-4.72H4.51c-.88 0-1.704-.507-1.938-1.354A9.009 9.009 0 0 1 2.25 12c0-.83.112-1.633.322-2.396C2.806 8.756 3.63 8.25 4.51 8.25H6.75Z" />
-                      </svg>
-                    </motion.button>
-                  ) : (
-                    <motion.button
-                      key="pause"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0.8, opacity: 0 }}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={handlePause}
-                      className="p-3 rounded-full bg-primary text-black transition-all shadow-[0_0_20px_rgb(var(--primary)/0.4)]"
-                      title={t("pause")}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25v13.5m-7.5-13.5v13.5" />
-                      </svg>
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-
-                {isSpeaking && (
-                  <motion.button
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={handleStop}
-                    className="p-3 rounded-full bg-red-500/20 border border-red-500/30 text-red-500 hover:bg-red-500/30 transition-all"
-                    title={t("stop")}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 7.5A2.25 2.25 0 0 1 7.5 5.25h9a2.25 2.25 0 0 1 2.25 2.25v9a2.25 2.25 0 0 1-2.25 2.25h-9a2.25 2.25 0 0 1-2.25-2.25v-9Z" />
-                    </svg>
-                  </motion.button>
-                )}
-              </div>
+              {/* Narration Engine */}
+              <NarrationEngine 
+                text={character.backstory?.[language] || character.backstory?.en || character.description} 
+                audioUrl={character.voiceUrl}
+                label={t("listen")}
+              />
             </div>
 
             <div className="h-32 lg:h-40 overflow-y-auto pr-6 custom-scrollbar">

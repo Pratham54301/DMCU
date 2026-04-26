@@ -1,13 +1,13 @@
 "use client";
 
 import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useRef, useEffect, useState } from "react";
 import Container from "@/components/Container";
 import GlowLink from "@/components/GlowLink";
 import { useTheme } from "@/app/theme-context";
 import { FloatingElement } from "@/components/motion/MotionComponents";
 
-export default function HeroSection({ content }) {
+export default function HeroSection({ content, id }) {
   const { theme } = useTheme();
   const containerRef = useRef(null);
   
@@ -33,9 +33,26 @@ export default function HeroSection({ content }) {
     mouseY.set(y);
   };
 
+  const [mounted, setMounted] = useState(false);
+  const [particles, setParticles] = useState([]);
+
+  useEffect(() => {
+    setMounted(true);
+    const newParticles = [...Array(30)].map(() => ({
+      opacity: Math.random() * 0.5,
+      x: Math.random() * 2000 - 1000,
+      y: Math.random() * 2000 - 1000,
+      left: `${Math.random() * 100}%`,
+      top: `${Math.random() * 100}%`,
+      moveY: Math.random() * -100 - 50,
+      duration: 10 + Math.random() * 20
+    }));
+    setParticles(newParticles);
+  }, []);
+
   return (
     <section 
-      id="hero" 
+      id={id || "home"} 
       ref={containerRef}
       onMouseMove={handleMouseMove}
       className="relative min-h-screen flex items-center justify-center overflow-hidden select-none"
@@ -51,27 +68,27 @@ export default function HeroSection({ content }) {
 
       {/* LAYER 2: Floating Particles */}
       <div className="absolute inset-0 z-10 pointer-events-none">
-        {[...Array(30)].map((_, i) => (
+        {mounted && particles.map((p, i) => (
           <motion.div
             key={i}
             initial={{ 
-                opacity: Math.random() * 0.5, 
-                x: Math.random() * 2000 - 1000, 
-                y: Math.random() * 2000 - 1000 
+                opacity: p.opacity, 
+                x: p.x, 
+                y: p.y 
             }}
             animate={{ 
-                y: [null, Math.random() * -100 - 50],
+                y: [null, p.moveY],
                 opacity: [0.2, 0.5, 0.2]
             }}
             transition={{ 
-                duration: 10 + Math.random() * 20, 
+                duration: p.duration, 
                 repeat: Infinity,
                 ease: "linear"
             }}
             className="absolute w-1 h-1 bg-primary rounded-full shadow-[0_0_8px_rgba(var(--primary-color),0.8)]"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: p.left,
+              top: p.top,
             }}
           />
         ))}
@@ -113,13 +130,24 @@ export default function HeroSection({ content }) {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, ease: "easeOut" }}
-            className="text-lg md:text-2xl text-primary/80 mt-8 mb-12 uppercase tracking-[0.5em] font-medium max-w-3xl mx-auto"
+            className="text-lg md:text-2xl text-primary/80 mt-8 mb-4 uppercase tracking-[0.5em] font-medium max-w-3xl mx-auto"
           >
             {content?.subtitle || "A New Era of Dharma Begins"}
           </motion.p>
 
+          {content?.description && (
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 1, delay: 0.6, ease: "easeOut" }}
+              className="text-sm md:text-base text-muted mb-12 max-w-2xl mx-auto leading-relaxed"
+            >
+              {content.description}
+            </motion.p>
+          )}
+
           <GlowLink href="/#characters">
-            Explore Universe
+            {content?.buttonText || "Explore The Universe"}
           </GlowLink>
         </FloatingElement>
       </Container>

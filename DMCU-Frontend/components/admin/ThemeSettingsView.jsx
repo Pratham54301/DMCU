@@ -34,7 +34,22 @@ export default function ThemeSettingsView() {
       text: "#eaeaea",
       muted: "#b0b0b0",
       surface: "#141414",
-      surfaceStrong: "#1e1e1e"
+      surfaceStrong: "#1e1e1e",
+      characterBg: "#050505"
+    },
+    heroSection: {
+      backgroundStyle: "gradient",
+      textColor: "#eaeaea",
+      animationType: "fade"
+    },
+    animations: {
+      type: "fade",
+      speed: 0.5
+    },
+    components: {
+      buttonStyle: "gold",
+      cardStyle: "glass-card",
+      glowIntensity: "medium"
     },
     backgroundConfig: "cosmic",
     backgroundStyles: {
@@ -261,6 +276,15 @@ export default function ThemeSettingsView() {
                         >
                            Auto Contrast
                         </button>
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] uppercase tracking-widest text-muted block">Character BG</label>
+                        <input 
+                           type="color" 
+                           value={newTheme.colors.characterBg || "#050505"}
+                           onChange={e => setNewTheme({...newTheme, colors: {...newTheme.colors, characterBg: e.target.value}})}
+                           className="w-full h-10 bg-transparent cursor-pointer rounded overflow-hidden"
+                        />
                      </div>
                   </div>
 

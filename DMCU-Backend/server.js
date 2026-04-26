@@ -5,12 +5,14 @@ dotenv.config();
 const app = require("./app");
 const connectDB = require("./config/db");
 const seedAdmin = require("./config/seedAdmin");
+const seedAchievements = require("./config/seedAchievements");
 
 const port = process.env.PORT || 5001;
 
 const startServer = async () => {
   await connectDB();
   await seedAdmin();
+  await seedAchievements();
 
   const server = app.listen(port, () => {
     console.log(`DMCU Backend server running on port ${port}`);

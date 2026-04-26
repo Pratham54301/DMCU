@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Comic = require('../models/Comic');
+const { protect } = require('../middleware/authMiddleware');
+const { comicUpload, getUploadedFilePath } = require('../middleware/uploadMiddleware');
 
 // GET all comics
 router.get('/', async (req, res) => {
@@ -24,9 +26,16 @@ router.get('/:slug', async (req, res) => {
 });
 
 // POST new comic
-router.post('/', async (req, res) => {
+router.post('/', protect, comicUpload, async (req, res) => {
   try {
-    const comic = new Comic(req.body);
+    const comicData = { ...req.body };
+    
+    if (req.files) {
+      if (req.files.coverImage) comicData.coverImage = getUploadedFilePath(req.files.coverImage[0]);
+      if (req.files.pdfFile) comicData.pdfFile = getUploadedFilePath(req.files.pdfFile[0]);
+    }
+
+    const comic = new Comic(comicData);
     await comic.save();
     res.status(201).json({ success: true, data: comic });
   } catch (err) {
@@ -35,9 +44,16 @@ router.post('/', async (req, res) => {
 });
 
 // PUT update comic
-router.put('/:id', async (req, res) => {
+router.put('/:id', protect, comicUpload, async (req, res) => {
   try {
-    const comic = await Comic.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const comicData = { ...req.body };
+    
+    if (req.files) {
+      if (req.files.coverImage) comicData.coverImage = getUploadedFilePath(req.files.coverImage[0]);
+      if (req.files.pdfFile) comicData.pdfFile = getUploadedFilePath(req.files.pdfFile[0]);
+    }
+
+    const comic = await Comic.findByIdAndUpdate(req.params.id, comicData, { new: true });
     if (!comic) return res.status(404).json({ success: false, message: 'Comic not found' });
     res.json({ success: true, data: comic });
   } catch (err) {
@@ -46,7 +62,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // DELETE comic
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const comic = await Comic.findByIdAndDelete(req.params.id);
     if (!comic) return res.status(404).json({ success: false, message: 'Comic not found' });

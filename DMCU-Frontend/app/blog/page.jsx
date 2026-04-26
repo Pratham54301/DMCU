@@ -7,8 +7,6 @@ import { motion } from "framer-motion";
 import Container from "@/components/Container";
 import SectionHeading from "@/components/SectionHeading";
 import Reveal from "@/components/Reveal";
-import SiteHeader from "@/components/SiteHeader";
-import FooterSection from "@/sections/FooterSection";
 import CinematicBackdrop from "@/components/CinematicBackdrop";
 import { buildMediaUrl, fetchJson } from "@/lib/api";
 
@@ -52,7 +50,6 @@ export default function BlogIndexPage() {
   return (
     <main className="relative min-h-screen overflow-x-hidden bg-background text-text">
       <CinematicBackdrop />
-      <SiteHeader />
 
       <div className="relative z-10 pt-32 pb-20">
         <Container>
@@ -125,8 +122,6 @@ export default function BlogIndexPage() {
           )}
         </Container>
       </div>
-
-      <FooterSection />
     </main>
   );
 }
