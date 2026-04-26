@@ -1,13 +1,22 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 /** @type {import("next").NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  outputFileTracingRoot: __dirname
+  outputFileTracingRoot: process.cwd(),
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '5002',
+        pathname: '/**',
+      },
+      {
+        protocol: 'http',
+        hostname: '192.168.*.*',
+        pathname: '/**',
+      }
+    ],
+  },
 };
 
 export default nextConfig;
