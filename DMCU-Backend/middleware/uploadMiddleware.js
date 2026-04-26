@@ -10,6 +10,21 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
+const isCloudinaryConfigured = process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET;
+
+// Local Storage Configuration (Fallback)
+const localStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const fs = require('fs');
+    const dir = './uploads';
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${file.fieldname}-${Date.now()}${path.extname(file.originalname)}`);
+  }
+});
+
 // Storage for Images (Characters, Blogs, Comics)
 const imageStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -52,12 +67,12 @@ const storage = multer.diskStorage({}); // Placeholder for multer-storage-cloudi
 // We'll define specific upload instances instead
 
 const imageUpload = multer({ 
-  storage: imageStorage,
+  storage: isCloudinaryConfigured ? imageStorage : localStorage,
   limits: { fileSize: 10 * 1024 * 1024 } 
 });
 
 const characterUpload = multer({
-  storage: new CloudinaryStorage({
+  storage: isCloudinaryConfigured ? new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
       let resource_type = "image";
@@ -76,7 +91,7 @@ const characterUpload = multer({
         public_id: `${file.fieldname}-${Date.now()}`
       };
     }
-  })
+  }) : localStorage
 }).fields([
   { name: "image", maxCount: 1 },
   { name: "imageTransparent", maxCount: 1 },
@@ -84,7 +99,7 @@ const characterUpload = multer({
 ]);
 
 const comicUpload = multer({
-  storage: new CloudinaryStorage({
+  storage: isCloudinaryConfigured ? new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
       let resource_type = "image";
@@ -101,20 +116,22 @@ const comicUpload = multer({
         public_id: `${file.fieldname}-${Date.now()}`
       };
     }
-  })
+  }) : localStorage
+}, {
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit for comics/PDFs
 }).fields([
   { name: "coverImage", maxCount: 1 },
   { name: "pdfFile", maxCount: 1 }
 ]);
 
 const blogUpload = multer({
-  storage: imageStorage
+  storage: isCloudinaryConfigured ? imageStorage : localStorage
 }).fields([
   { name: "image", maxCount: 1 }
 ]);
 
 const sectionArchitectUpload = multer({
-  storage: new CloudinaryStorage({
+  storage: isCloudinaryConfigured ? new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
       return {
@@ -123,17 +140,26 @@ const sectionArchitectUpload = multer({
         public_id: `${file.fieldname}-${Date.now()}`
       };
     }
-  })
+  }) : localStorage
 }).any();
 
 const trailerUpload = multer({
-  storage: imageStorage
+  storage: isCloudinaryConfigured ? imageStorage : localStorage
 }).fields([
   { name: "thumbnail", maxCount: 1 }
 ]);
 
 const getUploadedFilePath = (file) => {
-  return file ? file.path : null;
+  if (!file) return null;
+  
+  // If it's a Cloudinary upload, it has a 'path' which is the URL
+  // If it's a local disk upload, 'path' is the absolute disk path, but we want the relative web path
+  if (isCloudinaryConfigured) {
+    return file.path;
+  } else {
+    // For local storage, multer provides 'filename'
+    return `/uploads/${file.filename}`;
+  }
 };
 
 module.exports = {

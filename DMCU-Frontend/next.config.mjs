@@ -17,6 +17,23 @@ const nextConfig = {
       }
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: '/comics',
+        destination: '/comic',
+        permanent: true,
+      },
+    ];
+  },
+  async rewrites() {
+    return [
+      {
+        source: '/uploads/:path*',
+        destination: 'http://localhost:5002/uploads/:path*',
+      },
+    ];
+  },
 };
 
 export default nextConfig;

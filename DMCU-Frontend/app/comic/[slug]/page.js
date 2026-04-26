@@ -7,9 +7,11 @@ import Container from "@/components/Container";
 import CinematicBackdrop from "@/components/CinematicBackdrop";
 import { GlowButton } from "@/components/motion/MotionComponents";
 import { buildMediaUrl, fetchJson } from "@/lib/api";
+import { useUser } from "@/context/UserContext";
 
 export default function ComicDetailPage({ params }) {
   const resolvedParams = use(params);
+  const { user, refreshProfile } = useUser();
   const [comic, setComic] = useState(null);
   const [status, setStatus] = useState("loading");
   const [isWatchlisted, setIsWatchlisted] = useState(false);
@@ -21,13 +23,36 @@ export default function ComicDetailPage({ params }) {
         if (payload.success) {
           setComic(payload.data);
           setStatus("success");
+          
+          // Check if already in watchlist
+          if (user?.favorites?.comics?.includes(payload.data._id)) {
+            setIsWatchlisted(true);
+          }
         }
       } catch (e) {
         setStatus("error");
       }
     };
     loadComic();
-  }, [resolvedParams.slug]);
+  }, [resolvedParams.slug, user]);
+
+  const toggleWatchlist = async () => {
+    if (!user) return alert("Initialize Neural Link to synchronize archives.");
+    try {
+      const token = localStorage.getItem("dmcu_user_token");
+      const res = await fetchJson("/api/users/favorites", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ type: 'comics', id: comic._id })
+      });
+      if (res.success) {
+        setIsWatchlisted(!isWatchlisted);
+        refreshProfile();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   if (status === "loading") return <div className="min-h-screen bg-black flex items-center justify-center text-primary animate-pulse uppercase tracking-[0.4em]">Deciphering Scroll Matrix...</div>;
   if (status === "error" || !comic) return <div className="min-h-screen bg-black flex items-center justify-center text-red-500 uppercase tracking-widest">Chronicle Lost in the Great Deletion.</div>;
@@ -67,7 +92,7 @@ export default function ComicDetailPage({ params }) {
               
               <div className="mt-8 flex gap-4">
                  <button 
-                  onClick={() => setIsWatchlisted(!isWatchlisted)}
+                  onClick={toggleWatchlist}
                   className={`flex-1 h-14 rounded-xl border flex items-center justify-center gap-3 text-[10px] uppercase tracking-widest font-black transition-all ${isWatchlisted ? 'bg-primary text-black border-primary' : 'bg-white/5 border-white/10 text-muted hover:border-primary/40'}`}
                  >
                     <svg className="w-5 h-5" fill={isWatchlisted ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">

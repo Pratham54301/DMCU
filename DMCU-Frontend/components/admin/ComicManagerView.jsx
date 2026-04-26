@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { fetchJson, buildMediaUrl } from "@/lib/api";
+import { fetchJson, buildMediaUrl, buildApiUrl } from "@/lib/api";
+import { getStoredAdminSession } from "@/lib/admin-auth";
 import { CinematicCard, GlowButton } from "@/components/motion/MotionComponents";
 
 export default function ComicManagerView() {
@@ -59,14 +60,23 @@ export default function ComicManagerView() {
     formData.append("pdfFile", pdfFile);
 
     try {
-      const response = await fetch("/api/comics", {
+      const session = getStoredAdminSession();
+      const response = await fetch(buildApiUrl("/api/comics"), {
         method: "POST",
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('dmcu-admin-token')}`
+          'Authorization': `Bearer ${session?.token}`
         },
         body: formData,
       });
-      const result = await response.json();
+      
+      const contentType = response.headers.get("content-type");
+      let result;
+      if (contentType && contentType.includes("application/json")) {
+        result = await response.json();
+      } else {
+        const text = await response.text();
+        throw new Error(text || `Server responded with status ${response.status}`);
+      }
       
       if (result.success) {
         setShowAddForm(false);
@@ -90,7 +100,13 @@ export default function ComicManagerView() {
   const handleDeleteComic = async (id) => {
     if (!confirm("Are you sure you want to delete this comic?")) return;
     try {
-      await fetchJson(`/api/comics/${id}`, { method: "DELETE" });
+      const session = getStoredAdminSession();
+      await fetchJson(`/api/comics/${id}`, { 
+        method: "DELETE",
+        headers: {
+          'Authorization': `Bearer ${session?.token}`
+        }
+      });
       loadComics();
       setMessage("Comic deleted");
       setTimeout(() => setMessage(""), 3000);

@@ -141,3 +141,28 @@ exports.deleteUser = async (req, res, next) => {
     next(error);
   }
 };
+// @desc    Toggle favorite (Comic, Character, Blog)
+// @route   POST /api/users/favorites
+exports.toggleFavorite = async (req, res, next) => {
+  try {
+    const { type, id } = req.body; // type: 'comics', 'characters', 'blogs'
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    const index = user.favorites[type].indexOf(id);
+    if (index > -1) {
+      user.favorites[type].splice(index, 1);
+    } else {
+      user.favorites[type].push(id);
+    }
+
+    await user.save();
+    res.json({ success: true, data: user.favorites });
+  } catch (error) {
+    next(error);
+  }
+};
